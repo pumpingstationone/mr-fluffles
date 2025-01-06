@@ -1,6 +1,6 @@
 function OnAbout(event)
    ctrl = event:GetTextCtrl()
-   ctrl:AppendText("Pumping Station One: MrFluffles Post Processor 04-26-24\n")
+   ctrl:AppendText("Pumping Station One: MrFluffles (Bandaid version) 01-03-25\n")
    ctrl:AppendText("\n")
    ctrl:AppendText("Modal G-codes and coordinates\n")
    ctrl:AppendText("Comments enclosed with ( and )\n")
@@ -19,10 +19,20 @@ end
 --   based on Mach2.post
 
 
+math.randomseed(os.time())
+
+local function randomNumber(length)
+    local res = ""
+    for i = 1, length do
+        res = res .. math.random(0, 9) 
+    end
+    return res
+end
+
 
 function OnInit()
    post.SetCommentChars ("()", "[]")  --make sure ( and ) characters do not appear in system text
-   post.Text ("\n(MR FLUFFLES version 1.2 - 04/26/24)\n")
+   post.Text ("\n(MR FLUFFLES version 1.3 (Bandaid) - 01/03/25)\n")
    post.Text (" (Filename: ", fileName, ")\n")
    post.Text (" (Post processor: ", postName, ")\n")
    post.Text (" (Date: ", date, ")\n")
@@ -32,9 +42,9 @@ function OnInit()
       post.Text (" G20 (Units: Inches)\n") --inch mode
    end
    --post.Text (" G40 G90\n F1 S1\n")
-   post.Text ("\nG90\n")
-   post.Text ("\nG64 P0.0050 Q 0.0050 (PathBlending)\n")
-   post.Text ("\nG91.1 (Incremental Arc Distance Mode)\n")
+   post.Text ("\n G90\n")
+   post.Text ("\n G64 P0.0050 Q 0.0050 (PathBlending)\n")
+   post.Text ("\n G91.1 (Incremental Arc Distance Mode)\n")
    
    bigArcs = 1 --stitch arc segments together
    minArcSize = 0.05 --arcs smaller than this are converted to moves
@@ -56,6 +66,7 @@ function OnRapid()
    post.ModalText (" G00")
    post.ModalNumber (" X", endX * scale, "0.0000")
    post.ModalNumber (" Y", endY * scale, "0.0000")
+   --post.ModalNumber (" ZZZZZZZZZ", (endZ + toolOffset) * scale, "0.0000")
    post.ModalText ("\n")
 end
 
@@ -87,10 +98,59 @@ end
 
 
 function OnPenDown()
+   --post.Text("\n (ALOHA)\n")
+   --if (preheat > 0.001) then
+   --   post.ModalText (" G00")
+   --   post.ModalNumber (" Z", cutHeight * scale, "0.0000")
+   --   post.Text ("\n G04 P")
+   --   post.Number (preheat,"0.###")
+   --   post.Eol()
+   --end
+   --post.ModalText ("(HELLO THERE!)")
+   --post.ModalText (" G00")
+   --post.ModalNumber (" Z", pierceHeight * scale, "0.0000")
    post.Text ("\n M200\n")
    post.Text ("\n G15 (probe)\n")
-   post.Text ("\n G16 (pierce)\n")
-   
+
+   -- 1/3/25 - added G16 for pierce
+   -- from Tormach to get around the issue of the torch not firing
+   -- The line below is the original line from the SheetCam post
+   -- and it is commented out, the new block from the Tormach post
+   -- is below it.
+   --post.Text ("\n G16 (pierce)\n")
+   --
+   -- Here begins the new block from the Tormach post
+   --
+   local randomNum = randomNumber(3)
+
+   post.Text ("\n M65 P21 (make sure thc is off in case of an estop or program stop)\n")
+   post.Text ("\n M65 P22 (DIO22 is for pausing THC during cutting and DIO21 is for resetting it overall)\n")
+   post.Text ("\n (go to pierce height)\n")
+   post.Text ("\n M70\n")
+   post.Text ("\n   G20\n")
+   post.Text ("\n   F25\n")
+   post.Text ("\n   (Whether or not we probed to find this height, we now go to pierce height)\n")
+   post.Text ("\n   G38.6 Z[#<_tormach_pierce_height> / 2.0]\n")
+   post.Text ("\n M72\n")
+   post.Text ("\n (start torch)\n")
+   post.Text ("\n (DEBUG, Starting torch. Waiting 10 seconds for arc-ok)\n")
+   post.Text ("\n M3 S1\n")
+   post.Text ("\n M66 P22 L3 Q10 (Wait for Arc OK from torch for 10 seconds)\n")
+   post.Text ("\n o", randomNum, " if [#5399 EQ -1]\n")
+   post.Text ("\n   (DEBUG, Did not get arc-ok signal after 10 seconds)\n")
+   post.Text ("\n   M5 (shut off arc)\n")
+   post.Text ("\n o", randomNum, " else\n")
+   post.Text ("\n   (DEBUG, Got arc ok signal. Starting cut)\n")
+   post.Text ("\n o", randomNum, " endif\n")
+   post.Text ("\n (go to cut height)\n")
+   post.Text ("\n M70\n")
+   post.Text ("\n   G20\n")
+   post.Text ("\n   F25\n")
+   post.Text ("\n   Z#<_tormach_cut_height> (goto cut height)\n")
+   post.Text ("\n M72   \n")
+
+   -- End of the new block from the Tormach post
+
    if (pierceDelay > 0.001) then
       post.Text (" G04 P")
       post.Number (pierceDelay,"0.###")
