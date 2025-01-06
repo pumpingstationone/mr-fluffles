@@ -1,6 +1,6 @@
 function OnAbout(event)
    ctrl = event:GetTextCtrl()
-   ctrl:AppendText("Pumping Station One: MrFluffles (Bandaid version) 01-03-25\n")
+   ctrl:AppendText("Pumping Station One: MrFluffles (Bandaid version) 01-06-25\n")
    ctrl:AppendText("\n")
    ctrl:AppendText("Modal G-codes and coordinates\n")
    ctrl:AppendText("Comments enclosed with ( and )\n")
@@ -19,20 +19,16 @@ end
 --   based on Mach2.post
 
 
-math.randomseed(os.time())
+blockNum = 0
 
-local function randomNumber(length)
-    local res = ""
-    for i = 1, length do
-        res = res .. math.random(0, 9) 
-    end
-    return res
+local function GetNextBlockNum()
+   blockNum = blockNum + 1
+   return blockNum
 end
-
 
 function OnInit()
    post.SetCommentChars ("()", "[]")  --make sure ( and ) characters do not appear in system text
-   post.Text ("\n(MR FLUFFLES version 1.3 (Bandaid) - 01/03/25)\n")
+   post.Text ("\n(MR FLUFFLES version 1.3.1 (Bandaid) - 01/06/25)\n")
    post.Text (" (Filename: ", fileName, ")\n")
    post.Text (" (Post processor: ", postName, ")\n")
    post.Text (" (Date: ", date, ")\n")
@@ -121,7 +117,7 @@ function OnPenDown()
    --
    -- Here begins the new block from the Tormach post
    --
-   local randomNum = randomNumber(3)
+   local blockNum = GetNextBlockNum()
 
    post.Text ("\n M65 P21 (make sure thc is off in case of an estop or program stop)\n")
    post.Text ("\n M65 P22 (DIO22 is for pausing THC during cutting and DIO21 is for resetting it overall)\n")
@@ -136,12 +132,12 @@ function OnPenDown()
    post.Text ("\n (DEBUG, Starting torch. Waiting 10 seconds for arc-ok)\n")
    post.Text ("\n M3 S1\n")
    post.Text ("\n M66 P22 L3 Q10 (Wait for Arc OK from torch for 10 seconds)\n")
-   post.Text ("\n o", randomNum, " if [#5399 EQ -1]\n")
+   post.Text ("\n o", blockNum, " if [#5399 EQ -1]\n")
    post.Text ("\n   (DEBUG, Did not get arc-ok signal after 10 seconds)\n")
    post.Text ("\n   M5 (shut off arc)\n")
-   post.Text ("\n o", randomNum, " else\n")
+   post.Text ("\n o", blockNum, " else\n")
    post.Text ("\n   (DEBUG, Got arc ok signal. Starting cut)\n")
-   post.Text ("\n o", randomNum, " endif\n")
+   post.Text ("\n o", blockNum, " endif\n")
    post.Text ("\n (go to cut height)\n")
    post.Text ("\n M70\n")
    post.Text ("\n   G20\n")
